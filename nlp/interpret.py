@@ -1,6 +1,8 @@
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk import RegexpParser, pos_tag, ne_chunk
 
+from prediction import Prediction
+
 temporary = """“Fundamentals have gone out the window and irrational exuberance may accelerate bitcoin past the $50K level ahead of the second quarter schedule,” Jehan Chu, managing partner at Hong Kong-based crypto investment firm Kenetic Capital, told CoinDesk."""
 
 with open("articles/samples") as f:
@@ -15,19 +17,6 @@ patterns = {
   # "direct_prediction2": """Chunk: {<MD>+<VB.?>+<NN.?>*<.*>*<CD>*<JJ>+<NN>}"""
 }
 
-class Prediction():
-  def __init__(self, raw_chunk, price=[], exp_date=[], author=[]):
-    self.price = price
-    self.exp_date = exp_date
-    self.author = author
-    self.raw_chunk = raw_chunk
-
-  def __str__(self):
-    print(f"Price: {self.price}")
-    print(f"Expiration Date: {self.exp_date}")
-    print(f"Author: {self.author}")
-    print(f"Raw Chunk: {self.raw_chunk}")
-
 def grabChunks(content):
   # Parse the article into sentences
   # Check each sentence for bitcoin NNP's.
@@ -41,7 +30,6 @@ def grabChunks(content):
   for i in tokens:
     token = word_tokenize(i)
     pos_tagged = pos_tag(token)
-    named_entities = ne_chunk(pos_tagged, binary=True)
     for i in patterns:
       chunker = RegexpParser(patterns[i])
 
@@ -52,7 +40,11 @@ def grabChunks(content):
   return raw_chunks
 
 def compilePredictions(raw_chunks):
-  pass
+  predictions = []
+  for chunk in raw_chunks:
+    predictions.append(Prediction(raw_chunk=chunk))
+
+  return predictions
 
 if __name__ == "__main__":
   raw_chunks = grabChunks(temporary)
