@@ -15,6 +15,8 @@ PRP VBP      NNP     MD   VB   TO $ CD
 "Bitcoin will moon at 1  million dollars", says Doe
 NNP      MD   VB   IN CD CD      NNS       VBZ  NNP
 
+Prices could rally two to three times from their current level before falling back to about where they are now
+
 - Bitcoin is going to rise to $15000
 - They estimate bitcoin will dip down to $9000
 - $9000 is the estimated price of bitcoin for January 21st 2021
