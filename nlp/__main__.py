@@ -11,18 +11,21 @@ from nltk import RegexpParser, pos_tag, ne_chunk
 from nlp.prediction import Prediction
 from nlp.article import Article
 
+API_URL = "http://localhost:8080/api/"
+API_KEY = "zYmotoXZixZvPpOEfrJSoakrMNwVABZcSMdGRWdILrQoBodpbP" # Used so only permitted users can make callbacks
+
 class NLP():
   logging.basicConfig(format="%(asctime)s: %(message)s", level=logging.INFO, datefmt="%H:%M:%S")
-  
+
   def __init__(self):
     self.articlePool = []
     self.predictionPool = []
 
     self.running = True
 
-    self.chunkerPatterns = {
-      "direct_prediction0": """Chunk: {<NN.?><MD><VB.?>*<.*>*<CD>}""", # Bitcoin could hit $15000
-      "direct_prediction1": """Chunk: {<MD><VB.?><NN.?>*<.*>*<CD>}""", # May accelerate bitcoin past the $50k level
+    self.chunkerPatterns = { # Prediction Statements
+      "direct_prediction0": """Chunk: {<NN.?><MD><VB.?>*<.*>*<CD>}""", # E.g. Bitcoin could hit $15000
+      "direct_prediction1": """Chunk: {<MD><VB.?><NN.?>*<.*>*<CD>}""", # E.g. May accelerate bitcoin past the $50k level
       "direct_prediction2": """Chunk: {<MD>+<VB.?>+<NN.?>*<.*>*<CD>*<JJ>+<NN>}"""
     }
 
@@ -31,6 +34,8 @@ class NLP():
     self.createDB()
 
   def start(self):
+    # Initializing threads
+    
     threads = [
       threading.Thread(target=self.getArticles, daemon=True),
       threading.Thread(target=self.compilePredictions),
@@ -41,38 +46,34 @@ class NLP():
       thread.start()
 
   def createDB(self):
+    # Creating database for storing article ID's so predictions aren't made for the same article over and over. Database used for persistance.
+
     conn = sqlite3.connect("nlp.db")
     cur = conn.cursor()
     if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ARTICLE_ID'") == 0:
       cur.execute("""CREATE TABLE ARTICLE_ID(
         id TEXT NOT NULL );
       """)
-    if cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='PREDICTIONS'") == 0:
-      cur.execute("""CREATE TABLE PREDICTIONS{
-        id INT PRIMARY KEY NOT NULL,
-        price REAL NOT NULL,
-        expDate TEXT NOT NULL,
-        article_id INT NOT NULL,
-        chunk TEXT NOT NULL,
-        chunkUsed TEXT NOT NULL""")
+    # Add table to store prediction ID's.
 
     conn.close()
 
-  def callback(self):
-    pass
+  def callback(self, predictions):
+    # Callback to API/ web server with analysis of article. Sends json dictionary of prediction objects.
+    prediction_callback = requests.post(API_URL, data=predictions)
 
   def writeIndex(self, id):
+    # Write article ID's to the article_id table.
+
     conn = sqlite3.connect("nlp.db")
     conn.execute("INSERT INTO ARTICLE_ID (id) \
               VALUES (?)", (id,))
     conn.commit()
     conn.close()
 
-  def writePredictions(self):
-    for prediction in self.predictionPool:
-      pass
-    
   def readIndexes(self):
+    # Read all article ID's.
+
     indexed_ids = []
 
     conn = sqlite3.connect("nlp.db")
@@ -89,8 +90,10 @@ class NLP():
     return indexed_ids
 
   def getArticles(self):
+    # Grabs all articles from the API and converts them to Article objects, then adds them to articlePool for analysis.
+
     while self.running:
-      articles = requests.get(f"http://localhost:8080/api/articles/").json()
+      articles = requests.get(API_URL + "articles/").json()
       count = 0
       for article_ in articles:
         if not article_["id"] in self.readIndexes():
@@ -120,20 +123,18 @@ class NLP():
       time.sleep(5)
 
   def compilePrediction(self, article):
+    # Created prediction objects for articles.
+
     predictions = []
     chunks = self.grabChunks(article.content)
     for chunk in chunks:
       prediction = Prediction(chunk=chunk, article=article, chunkerUsed=chunks[chunk])
       predictions.append(prediction)
 
-    return predictions
+    self.predictionPool.extend(predictions)
 
   def grabChunks(self, content):
-    # Parse the article into sentences
-    # Check each sentence for bitcoin NNP's.
-    # If the sentence has a bitcoin NNP then check if it's a predictor statement.
-    # Check if the prediction is the authors or the author is quoting someone
-    # Return the prediction object
+    # Parse the article into sentences and filter each sentence for predictor statement chunks.
 
     rawChunks = {}
 
