@@ -1,12 +1,14 @@
 class Prediction():
-  def __init__(self, raw_chunk, price=[], exp_date=[], author=[]):
+  def __init__(self, chunk, article, chunkerUsed, price=[], expDate=[]):
     self.price = price
-    self.exp_date = exp_date
-    self.author = author
-    self.raw_chunk = raw_chunk
+    self.expDate = expDate
+    self.article = article
+    self.chunk = chunk
+    self.chunkerUsed = chunkerUsed
 
   def __str__(self):
     print(f"Price: {self.price}")
-    print(f"Expiration Date: {self.exp_date}")
-    print(f"Author: {self.author}")
-    print(f"Raw Chunk: {self.raw_chunk}")
+    print(f"Expiration Date: {self.expDate}")
+    print(f"Article: {self.article}")
+    print(f"Raw Chunk: {self.chunk}")
+    print(f"Chunker Used: {self.chunkerUsed}")
